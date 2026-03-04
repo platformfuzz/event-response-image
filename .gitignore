@@ -1,0 +1,19 @@
+# Local env (copy from .env.example)
+.env
+
+# Binary
+event-response-app
+
+# Coverage
+coverage.out
+coverage.html
+
+# IDE and OS
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.tmp
+*.temp
+*.log

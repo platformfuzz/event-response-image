@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Delete event</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 24px auto; padding: 0 16px; }
+    h1 { margin-bottom: 16px; }
+    p { margin: 12px 0; }
+    button { padding: 8px 16px; margin-right: 8px; }
+    .danger { background: #c00; color: #fff; border: none; }
+    a { color: #06c; }
+  </style>
+</head>
+<body>
+  <h1>Delete event?</h1>
+  <p><strong>{{.Title}}</strong></p>
+  {{if .Description}}<p>{{.Description}}</p>{{end}}
+  <form method="post" action="/delete/confirm" style="display:inline">
+    <input type="hidden" name="id" value="{{.ID}}">
+    <button type="submit" class="danger">Delete</button>
+  </form>
+  <a href="/">Cancel</a>
+</body>
+</html>

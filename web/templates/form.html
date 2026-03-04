@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{.Title}}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 24px auto; padding: 0 16px; }
+    h1 { margin-bottom: 16px; }
+    label { display: block; margin-top: 12px; }
+    input, textarea { width: 100%; padding: 6px; box-sizing: border-box; }
+    textarea { min-height: 80px; }
+    button { margin-top: 16px; padding: 8px 16px; }
+    a { color: #06c; margin-left: 12px; }
+  </style>
+</head>
+<body>
+  <h1>{{.Title}}</h1>
+  <form method="post" action="{{.Action}}">
+    {{if .Event.ID}}
+    <input type="hidden" name="id" value="{{.Event.ID}}">
+    {{end}}
+    <label>Title <input type="text" name="title" value="{{.Event.Title}}" required></label>
+    <label>Description <textarea name="description">{{.Event.Description}}</textarea></label>
+    <button type="submit">Save</button>
+    <a href="/">Cancel</a>
+  </form>
+</body>
+</html>
