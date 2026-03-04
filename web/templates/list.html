@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Events</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+    h1 { margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+    a { color: #06c; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .actions { white-space: nowrap; }
+    .actions a { margin-right: 8px; }
+    .msg { color: green; margin-bottom: 12px; }
+    .err { color: #c00; background: #fee; padding: 10px; margin-bottom: 12px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Events</h1>
+  {{if .ListError}}
+  <p class="err">{{.ListError}}</p>
+  {{end}}
+  {{if .Created}}
+  <p class="msg">Created event #{{.Created}}.</p>
+  {{end}}
+  <p><a href="/new">New event</a></p>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Title</th><th>Description</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {{range .Events}}
+      <tr>
+        <td>{{.ID}}</td>
+        <td>{{.Title}}</td>
+        <td>{{.Description}}</td>
+        <td class="actions">
+          <a href="/edit?id={{.ID}}">Edit</a>
+          <a href="/delete?id={{.ID}}">Delete</a>
+        </td>
+      </tr>
+      {{else}}
+      <tr><td colspan="4">No events yet. <a href="/new">Create one</a>.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</body>
+</html>

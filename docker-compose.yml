@@ -1,0 +1,44 @@
+# Local dev: FastSchema + this app. Run from this directory (app/).
+# Optional: copy .env.example to .env and set ADMIN_USER/ADMIN_PASS for API auth.
+# Compose loads .env automatically when present.
+# Web app: http://localhost:8080  |  FastSchema dash: http://localhost:8000/dash
+
+services:
+  fastschema:
+    image: ghcr.io/fastschema/fastschema:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_KEY=${APP_KEY:-}
+      - ADMIN_USER=${ADMIN_USER:-}
+      - ADMIN_PASS=${ADMIN_PASS:-}
+    # Create admin user on first run when ADMIN_USER and ADMIN_PASS are set
+    command: >
+      /bin/sh -c "
+      if [ -n \"$$ADMIN_USER\" ] && [ -n \"$$ADMIN_PASS\" ]; then
+        /fastschema/fastschema setup -u \"$$ADMIN_USER\" -p \"$$ADMIN_PASS\" . || true;
+      fi;
+      exec /fastschema/fastschema start .
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8000/dash || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      FASTSCHEMA_URL: http://fastschema:8000
+      PORT: "8080"
+      # Use same ADMIN_USER/ADMIN_PASS as fastschema (from .env) for API auth
+      FASTSCHEMA_ADMIN_USER: ${ADMIN_USER:-}
+      FASTSCHEMA_ADMIN_PASS: ${ADMIN_PASS:-}
+    depends_on:
+      fastschema:
+        condition: service_healthy
