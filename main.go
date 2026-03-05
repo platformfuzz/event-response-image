@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"event-response-app/internal/auth"
 	"event-response-app/internal/fastschema"
 )
 
@@ -34,20 +35,41 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", listHandler)
 	mux.HandleFunc("/health", healthHandler)
-	mux.HandleFunc("/new", newFormHandler)
-	mux.HandleFunc("/create", createHandler)
-	mux.HandleFunc("/edit", editFormHandler)
-	mux.HandleFunc("/update", updateHandler)
-	mux.HandleFunc("/delete", deleteConfirmHandler)
-	mux.HandleFunc("/delete/confirm", deleteHandler)
+
+	// Prior Cognito by default: auth only when COGNITO_USER_POOL_ID is set (e.g. by event_dash_auth).
+	// Existing stacks (event_dash, event_dash_external) do not set it, so no behavior change.
+	cognitoEnabled := os.Getenv("COGNITO_USER_POOL_ID") != ""
+	if cognitoEnabled {
+		// Protected routes: require auth and permission
+		mux.Handle("/", auth.Middleware(auth.RequirePermission("view")(http.HandlerFunc(listHandler))))
+		mux.Handle("/edit", auth.Middleware(auth.RequirePermission("view")(http.HandlerFunc(editFormHandler))))
+		mux.Handle("/delete", auth.Middleware(auth.RequirePermission("view")(http.HandlerFunc(deleteConfirmHandler))))
+		mux.Handle("/new", auth.Middleware(auth.RequirePermission("write")(http.HandlerFunc(newFormHandler))))
+		mux.Handle("/create", auth.Middleware(auth.RequirePermission("write")(http.HandlerFunc(createHandler))))
+		mux.Handle("/update", auth.Middleware(auth.RequirePermission("write")(http.HandlerFunc(updateHandler))))
+		mux.Handle("/delete/confirm", auth.Middleware(auth.RequirePermission("write")(http.HandlerFunc(deleteHandler))))
+		mux.HandleFunc("/forbidden", forbiddenHandler)
+		mux.Handle("/whoami", auth.Middleware(http.HandlerFunc(whoamiHandler)))
+	} else {
+		mux.HandleFunc("/", listHandler)
+		mux.HandleFunc("/new", newFormHandler)
+		mux.HandleFunc("/create", createHandler)
+		mux.HandleFunc("/edit", editFormHandler)
+		mux.HandleFunc("/update", updateHandler)
+		mux.HandleFunc("/delete", deleteConfirmHandler)
+		mux.HandleFunc("/delete/confirm", deleteHandler)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	log.Printf("Listening on :%s (FASTSCHEMA_URL=%s)", port, baseURL)
+	if cognitoEnabled {
+		log.Printf("Listening on :%s (FASTSCHEMA_URL=%s, Cognito auth enabled)", port, baseURL)
+	} else {
+		log.Printf("Listening on :%s (FASTSCHEMA_URL=%s)", port, baseURL)
+	}
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
 
@@ -254,4 +276,21 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func forbiddenHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusForbidden)
+	fmt.Fprint(w, `<!DOCTYPE html><html><head><title>Access Denied</title></head><body><h1>Access Denied</h1><p>You do not have permission to access this resource.</p></body></html>`)
+}
+
+func whoamiHandler(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "User:\n  Sub: %s\n  Email: %s\n  Groups: %v\nPermissions:\n", user.Sub, user.Email, user.Groups)
+	for perm, granted := range user.Permissions {
+		if granted {
+			fmt.Fprintf(w, "  %s: true\n", perm)
+		}
+	}
 }
